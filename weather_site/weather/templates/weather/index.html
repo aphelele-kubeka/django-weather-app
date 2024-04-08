@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherApp</title>
+    <link rel="stylesheet" href="{% static 'weather/styles/base.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
+</head>
+<body>
+  <header id="main-header">
+    <nav><a href="/" id="main-logo">WeatherApp</a></nav>
+    <h1>Weather in your city</h1>
+</header>
+<section class="section">
+    <article>
+        <form action="weather/weather-info.html" method="get">
+        <input type="hidden" id="city" name="city" placeholder="Enter a city">
+        <input class="button is-primary" type="submit" name="send" value="Show">
+        </form>
+    </article>
+</section>
+<section class="section">
+    <article>
+        <p>This WeatherApp uses the user's location to show</p>
+        <p>the current weather conditions in the given city in realtime.</p>
+    </article>
+</section>
+<nav class="navbar is-dark">
+    <div class="navbar-brand">
+        <a href="{% url 'editor' %}" class="navbar-item">Notes</a>
+    </div>
+
+    <div class="navbar-menu">
+        <div class="navbar-end">
+            <a href="{% url 'editor' %}?noteid=0" class="navbar-item">New note</a>
+        </div>
+    </div>
+</nav>
+
+<section class="section">
+    <div class="columns">
+        <div class="column is-2">
+            <aside class="menu">
+                <p class="menu-label">Notes</p>
+
+                <ul class="menu-list">
+                    {% for note in notes %}
+                        <li>
+                            <a href="{% url 'editor' %}?noteid={{ note.id }}">{{ note.title }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        </div>
+
+        <div class="column is-8">
+            <form method="post" action="{% url 'editor' %}">
+                {% csrf_token %}
+
+                <input type="hidden" name="noteid" value="{{ noteid }}">
+
+                <div class="field">
+                    <label class="label">
+                        Title
+                    </label>
+
+                    <div class="control">
+                        <input type="text" class="input" name="title" placeholder="Title"{% if note %} value="{{ note.title }}"{% endif %}>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Content</label>
+
+                    <div class="control">
+                        <textarea class="textarea" name="content" placeholder="Content">{% if note %}{{ note.content }}{% endif %}</textarea>
+                    </div>
+                </div>
+
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-primary">Save</button>
+                    </div>
+                    {% if note %}
+                        <div class="control">
+                            <a href="{% url 'delete_note' note.id %}" class="button is-danger">Delete</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+<script>
+    // Get user coordinates
+    function getCoordintes() {
+        var options = {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        };
+
+        function success(pos) {
+            var crd = pos.coords;
+            var lat = crd.latitude.toString();
+            var lng = crd.longitude.toString();
+            var coordinates = [lat, lng];
+            getCity(coordinates);
+            return;
+        }
+
+        function error(err) {
+            console.warn(`ERROR(${err.code}): ${err.message}`);
+            alert("Oops, something went wrong! Refresh page and allow app to access your location.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(success, error, options);
+    }
+
+        // Get city name
+        function getCity(coordinates) {
+        var xhr = new XMLHttpRequest();
+        var lat = coordinates[0];
+        var lng = coordinates[1];
+
+        // Paste your LocationIQ token below.
+        xhr.open('GET', "https://us1.locationiq.com/v1/reverse.php?key=pk.4e380a92aa8df0867480f6d36b449cbd&lat=" +
+        lat + "&lon=" + lng + "&format=json", true);
+        xhr.send();
+        xhr.onreadystatechange = processRequest;
+        xhr.addEventListener("readystatechange", processRequest, false);
+
+        function processRequest(e) {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var response = JSON.parse(xhr.responseText);
+                var city = response.address.city;
+                document.getElementById('city').value=(city)
+                return;
+            }
+        }
+    }
+
+    getCoordintes();
+</script>
+</body>
+</html>
